@@ -7,6 +7,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var keyboardSwitcher:        KeyboardSwitcher!
     private var dockWatcher:             DockWatcher!
     private var settingsWindowController: SettingsWindowController!
+    private var aboutWindowController:    AboutWindowController!
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         configManager = ConfigManager()
@@ -15,10 +16,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         dockWatcher      = DockWatcher(configManager: configManager)
 
         settingsWindowController = SettingsWindowController(configManager: configManager)
+        aboutWindowController    = AboutWindowController()
 
         menuBarController = MenuBarController(
             configManager: configManager,
-            settingsWindowController: settingsWindowController
+            settingsWindowController: settingsWindowController,
+            aboutWindowController: aboutWindowController
         )
         menuBarController.register(keyboardSwitcher)
         menuBarController.register(dockWatcher)

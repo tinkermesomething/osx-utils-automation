@@ -9,7 +9,7 @@ APP_NAME="osx-utils-automation"
 PLIST_LABEL="com.local.$APP_NAME"
 VERSION="$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')"
 
-BINARY="$SCRIPT_DIR/$APP_NAME"
+BINARY="$SCRIPT_DIR/.build/release/$APP_NAME"
 APP_BUNDLE="$SCRIPT_DIR/$APP_NAME.app"
 DIST_DIR="$SCRIPT_DIR/dist"
 PKG_ROOT="$SCRIPT_DIR/pkg-root"
@@ -18,20 +18,7 @@ echo "==> Building $APP_NAME v$VERSION"
 
 # ── 1. Compile ────────────────────────────────────────────────────────────────
 echo "==> Compiling..."
-swiftc -swift-version 5 \
-    -framework AppKit \
-    -framework IOKit \
-    -framework Carbon \
-    -framework Foundation \
-    "$SCRIPT_DIR/Sources/main.swift" \
-    "$SCRIPT_DIR/Sources/Config.swift" \
-    "$SCRIPT_DIR/Sources/AppDelegate.swift" \
-    "$SCRIPT_DIR/Sources/MenuBarController.swift" \
-    "$SCRIPT_DIR/Sources/SettingsWindowController.swift" \
-    "$SCRIPT_DIR/Sources/automations/Automation.swift" \
-    "$SCRIPT_DIR/Sources/automations/KeyboardSwitcher.swift" \
-    "$SCRIPT_DIR/Sources/automations/DockWatcher.swift" \
-    -o "$BINARY"
+swift build -c release 2>&1
 
 # ── 2. Build app bundle ───────────────────────────────────────────────────────
 echo "==> Building app bundle..."
@@ -40,7 +27,7 @@ mkdir -p "$APP_BUNDLE/Contents/MacOS"
 mkdir -p "$APP_BUNDLE/Contents/Resources"
 
 cp "$BINARY"                                          "$APP_BUNDLE/Contents/MacOS/$APP_NAME"
-cp "$SCRIPT_DIR/Resources/Info.plist"                 "$APP_BUNDLE/Contents/"
+sed "s|VERSION_PLACEHOLDER|$VERSION|g" "$SCRIPT_DIR/Resources/Info.plist" > "$APP_BUNDLE/Contents/Info.plist"
 # Bundle the LaunchAgent template so postinstall can find it
 cp "$SCRIPT_DIR/com.local.$APP_NAME.plist"            "$APP_BUNDLE/Contents/Resources/$PLIST_LABEL.plist"
 

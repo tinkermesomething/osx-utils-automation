@@ -5,12 +5,14 @@ final class MenuBarController: NSObject {
     private var statusItem: NSStatusItem!
     private let configManager: ConfigManager
     private let settingsWindowController: SettingsWindowController
+    private let aboutWindowController: AboutWindowController
     private var automations: [any Automation] = []
     private let menu = NSMenu()
 
-    init(configManager: ConfigManager, settingsWindowController: SettingsWindowController) {
+    init(configManager: ConfigManager, settingsWindowController: SettingsWindowController, aboutWindowController: AboutWindowController) {
         self.configManager = configManager
         self.settingsWindowController = settingsWindowController
+        self.aboutWindowController = aboutWindowController
         super.init()
     }
 
@@ -129,6 +131,11 @@ extension MenuBarController: NSMenuDelegate {
 
             menu.addItem(.separator())
         }
+
+        let aboutItem = ClosureMenuItem(title: "About osx-utils-automation") { [weak self] in self?.aboutWindowController.showWindow() }
+        menu.addItem(aboutItem)
+
+        menu.addItem(.separator())
 
         let logsItem = ClosureMenuItem(title: "Open Logs") { [weak self] in self?.configManager.openLogs() }
         menu.addItem(logsItem)

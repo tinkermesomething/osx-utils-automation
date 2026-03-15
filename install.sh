@@ -12,25 +12,15 @@ PLIST_DST="$HOME/Library/LaunchAgents/$PLIST_LABEL.plist"
 LOG_FILE="$HOME/Library/Logs/$APP_NAME.log"
 
 echo "==> Compiling $APP_NAME..."
-swiftc -swift-version 5 \
-    -framework AppKit \
-    -framework IOKit \
-    -framework Carbon \
-    -framework Foundation \
-    "$SCRIPT_DIR/Sources/main.swift" \
-    "$SCRIPT_DIR/Sources/Config.swift" \
-    "$SCRIPT_DIR/Sources/AppDelegate.swift" \
-    "$SCRIPT_DIR/Sources/MenuBarController.swift" \
-    "$SCRIPT_DIR/Sources/SettingsWindowController.swift" \
-    "$SCRIPT_DIR/Sources/automations/Automation.swift" \
-    "$SCRIPT_DIR/Sources/automations/KeyboardSwitcher.swift" \
-    "$SCRIPT_DIR/Sources/automations/DockWatcher.swift" \
-    -o "$SCRIPT_DIR/$APP_NAME"
+cd "$SCRIPT_DIR"
+swift build -c release 2>&1
+cd - > /dev/null
 
 echo "==> Building app bundle at $APP_DST"
+VERSION="$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')"
 mkdir -p "$APP_DST/Contents/MacOS"
-cp "$SCRIPT_DIR/$APP_NAME"         "$BINARY_DST"
-cp "$SCRIPT_DIR/Resources/Info.plist" "$APP_DST/Contents/"
+cp "$SCRIPT_DIR/.build/release/$APP_NAME" "$BINARY_DST"
+sed "s|VERSION_PLACEHOLDER|$VERSION|g" "$SCRIPT_DIR/Resources/Info.plist" > "$APP_DST/Contents/Info.plist"
 chmod +x "$BINARY_DST"
 
 echo "==> Installing LaunchAgent plist to $PLIST_DST"

@@ -68,6 +68,15 @@ final class ConfigManager {
         watchForChanges()
     }
 
+    deinit {
+        if let stream = fsStream {
+            FSEventStreamStop(stream)
+            FSEventStreamInvalidate(stream)
+            FSEventStreamRelease(stream)
+            fsStream = nil
+        }
+    }
+
     // MARK: - Load / Save
 
     func load() {
@@ -80,8 +89,19 @@ final class ConfigManager {
         createDirIfNeeded()
         let enc = JSONEncoder()
         enc.outputFormatting = [.prettyPrinted, .sortedKeys]
-        guard let data = try? enc.encode(config) else { return }
-        try? data.write(to: CONFIG_URL)
+        guard let data = try? enc.encode(config) else {
+            log("ConfigManager: Failed to encode config")
+            return
+        }
+        // Write atomically (write-to-temp then rename) to prevent corruption on interrupted writes
+        do {
+            let tmp = CONFIG_URL.deletingLastPathComponent()
+                .appendingPathComponent("config.json.tmp")
+            try data.write(to: tmp, options: .atomic)
+            _ = try FileManager.default.replaceItemAt(CONFIG_URL, withItemAt: tmp)
+        } catch {
+            log("ConfigManager: Failed to save config — \(error)")
+        }
     }
 
     func setEnabled(automationId: String, enabled: Bool) {
@@ -118,18 +138,29 @@ final class ConfigManager {
     }
 
     private func watchForChanges() {
-        let selfPtr = Unmanaged.passUnretained(self).toOpaque()
-        var ctx = FSEventStreamContext(version: 0, info: selfPtr, retain: nil, release: nil, copyDescription: nil)
+        // passRetained: stream holds a strong ref to self; released in deinit via context release callback
+        let selfPtr = Unmanaged.passRetained(self).toOpaque()
+        var ctx = FSEventStreamContext(
+            version: 0,
+            info: selfPtr,
+            retain: nil,
+            release: { ptr in
+                guard let ptr else { return }
+                Unmanaged<ConfigManager>.fromOpaque(ptr).release()
+            },
+            copyDescription: nil
+        )
 
         fsStream = FSEventStreamCreate(
             nil,
             { _, ctx, _, _, _, _ in
                 guard let ctx else { return }
                 let mgr = Unmanaged<ConfigManager>.fromOpaque(ctx).takeUnretainedValue()
-                // Debounce — wait for the editor to finish writing
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                    mgr.load()
-                    mgr.onChanged?()
+                // Debounce — wait for the editor to finish writing.
+                // [weak mgr] ensures the block is a no-op if ConfigManager is freed in this window.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak mgr] in
+                    mgr?.load()
+                    mgr?.onChanged?()
                 }
             },
             &ctx,

@@ -26,9 +26,10 @@ final class DockWatcher: NSObject, Automation {
     // MARK: - Private state
 
     private let configManager: ConfigManager
-    private var notifyPort:  IONotificationPortRef?
-    private var addedIter:   io_iterator_t = 0
-    private var removedIter: io_iterator_t = 0
+    private var notifyPort:   IONotificationPortRef?
+    private var addedIter:    io_iterator_t = 0
+    private var removedIter:  io_iterator_t = 0
+    private var ioKitContext: UnsafeMutableRawPointer?
 
     private let DOCK_VENDOR_ID:  Int32 = 6121   // 0x17E9 DisplayLink
     private let DOCK_PRODUCT_ID: Int32 = 24582  // 0x6006 D6000
@@ -50,12 +51,20 @@ final class DockWatcher: NSObject, Automation {
 
     func stop() {
         isEnabled = false
+        // Destroy the port first — this stops callbacks before we release the context pointer
+        if let port = notifyPort { IONotificationPortDestroy(port); notifyPort = nil }
         if addedIter   != IO_OBJECT_NULL { IOObjectRelease(addedIter);   addedIter   = IO_OBJECT_NULL }
         if removedIter != IO_OBJECT_NULL { IOObjectRelease(removedIter); removedIter = IO_OBJECT_NULL }
-        if let port = notifyPort { IONotificationPortDestroy(port); notifyPort = nil }
+        // Balance the passRetained from setupIOKitWatcher
+        if let ctx = ioKitContext {
+            Unmanaged<DockWatcher>.fromOpaque(ctx).release()
+            ioKitContext = nil
+        }
         status = .disabled
         log("DockWatcher: Stopped")
     }
+
+    deinit { if isEnabled { stop() } }
 
     func reloadConfig(from config: Config) {
         let shouldBeEnabled = config.dockWatcher.enabled
@@ -80,21 +89,23 @@ final class DockWatcher: NSObject, Automation {
         notifyPort = port
         IONotificationPortSetDispatchQueue(port, .main)
 
-        let ctx = Unmanaged.passUnretained(self).toOpaque()
+        // passRetained: IOKit holds a strong ref; released in stop() after port is destroyed
+        let rawCtx = Unmanaged.passRetained(self).toOpaque()
+        ioKitContext = rawCtx
 
         IOServiceAddMatchingNotification(port, kIOFirstMatchNotification, matchingDict(), { ctx, iter in
             var svc = IOIteratorNext(iter); var found = false
             while svc != IO_OBJECT_NULL { IOObjectRelease(svc); found = true; svc = IOIteratorNext(iter) }
             guard found, let ctx else { return }
             Unmanaged<DockWatcher>.fromOpaque(ctx).takeUnretainedValue().dockConnected()
-        }, ctx, &addedIter)
+        }, rawCtx, &addedIter)
 
         IOServiceAddMatchingNotification(port, kIOTerminatedNotification, matchingDict(), { ctx, iter in
             var svc = IOIteratorNext(iter); var found = false
             while svc != IO_OBJECT_NULL { IOObjectRelease(svc); found = true; svc = IOIteratorNext(iter) }
             guard found, let ctx else { return }
             Unmanaged<DockWatcher>.fromOpaque(ctx).takeUnretainedValue().dockDisconnected()
-        }, ctx, &removedIter)
+        }, rawCtx, &removedIter)
 
         // Drain iterators to arm notifications and detect startup state
         var dockPresent = false
@@ -146,7 +157,9 @@ final class DockWatcher: NSObject, Automation {
         task.waitUntilExit()
         guard task.terminationStatus == 0 else { return nil }
         let out = String(data: pipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-        return Int32(out.trimmingCharacters(in: .whitespacesAndNewlines))
+        let trimmed = out.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let pid = Int32(trimmed), pid > 0 else { return nil }
+        return pid
     }
 
     private func launchDisplayLink() {

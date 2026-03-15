@@ -31,7 +31,8 @@ final class KeyboardSwitcher: NSObject, Automation {
     // MARK: - Private state
 
     private let configManager: ConfigManager
-    private var hidManager: IOHIDManager?
+    private var hidManager:   IOHIDManager?
+    private var hidContext:   UnsafeMutableRawPointer?
     private var connectedKeyboards: [UInt64: DeviceKey] = [:]
     private var knownKeyboards: Set<DeviceKey> = []
     private let knownKeyboardsURL: URL
@@ -70,22 +71,24 @@ final class KeyboardSwitcher: NSObject, Automation {
             kIOHIDPrimaryUsageKey:    6,
         ] as CFDictionary)
 
-        let ctx = Unmanaged.passUnretained(self).toOpaque()
+        // passRetained: IOHIDManager holds a strong ref; released in stop() after closing the manager
+        let rawCtx = Unmanaged.passRetained(self).toOpaque()
+        hidContext = rawCtx
 
         IOHIDManagerRegisterDeviceMatchingCallback(mgr, { ctx, result, _, device in
             guard result == kIOReturnSuccess, let ctx else { return }
             Unmanaged<KeyboardSwitcher>.fromOpaque(ctx).takeUnretainedValue().deviceConnected(device)
-        }, ctx)
+        }, rawCtx)
 
         IOHIDManagerRegisterDeviceRemovalCallback(mgr, { ctx, result, _, device in
             guard result == kIOReturnSuccess, let ctx else { return }
             Unmanaged<KeyboardSwitcher>.fromOpaque(ctx).takeUnretainedValue().deviceDisconnected(device)
-        }, ctx)
+        }, rawCtx)
 
         IOHIDManagerRegisterInputValueCallback(mgr, { ctx, result, _, value in
             guard result == kIOReturnSuccess, let ctx else { return }
             Unmanaged<KeyboardSwitcher>.fromOpaque(ctx).takeUnretainedValue().inputReceived(value)
-        }, ctx)
+        }, rawCtx)
 
         IOHIDManagerSetInputValueMatching(mgr, [kIOHIDElementUsagePageKey: 7] as CFDictionary)
         IOHIDManagerScheduleWithRunLoop(mgr, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
@@ -110,15 +113,26 @@ final class KeyboardSwitcher: NSObject, Automation {
     func stop() {
         isEnabled = false
         if let mgr = hidManager {
+            // Unregister callbacks before closing so no callbacks fire during teardown
+            IOHIDManagerRegisterDeviceMatchingCallback(mgr, nil, nil)
+            IOHIDManagerRegisterDeviceRemovalCallback(mgr, nil, nil)
+            IOHIDManagerRegisterInputValueCallback(mgr, nil, nil)
             IOHIDManagerClose(mgr, IOOptionBits(kIOHIDOptionsTypeNone))
             IOHIDManagerUnscheduleFromRunLoop(mgr, CFRunLoopGetMain(), CFRunLoopMode.defaultMode.rawValue)
         }
         hidManager = nil
+        // Balance the passRetained from start()
+        if let ctx = hidContext {
+            Unmanaged<KeyboardSwitcher>.fromOpaque(ctx).release()
+            hidContext = nil
+        }
         connectedKeyboards.removeAll()
         initialEnumerationDone = false
         status = .disabled
         log("KeyboardSwitcher: Stopped")
     }
+
+    deinit { if isEnabled { stop() } }
 
     func reloadConfig(from config: Config) {
         let shouldBeEnabled = config.keyboardSwitcher.enabled
@@ -191,16 +205,22 @@ final class KeyboardSwitcher: NSObject, Automation {
 
     private func switchTo(_ layoutID: String) {
         guard let listRef = TISCreateInputSourceList(nil, false) else { return }
-        let sources = listRef.takeRetainedValue() as! [TISInputSource]
+        let sources = listRef.takeRetainedValue() as? [TISInputSource] ?? []
         for source in sources {
             guard let ptr = TISGetInputSourceProperty(source, kTISPropertyInputSourceID) else { continue }
             let id = Unmanaged<CFString>.fromOpaque(ptr).takeUnretainedValue() as String
             guard id == layoutID else { continue }
             let err = TISSelectInputSource(source)
-            log("KeyboardSwitcher: \(err == noErr ? "Switched" : "Failed to switch") to \(layoutID)")
+            if err == noErr {
+                log("KeyboardSwitcher: Switched to \(layoutID)")
+            } else {
+                log("KeyboardSwitcher: Failed to switch to \(layoutID) err=\(err)")
+                status = .degraded("Failed to switch layout — try re-granting Input Monitoring")
+            }
             return
         }
         log("KeyboardSwitcher: Layout not found: \(layoutID)")
+        status = .degraded("Layout '\(shortName(layoutID))' not found — check Settings")
     }
 
     // MARK: - Auto-detect layouts
@@ -209,7 +229,7 @@ final class KeyboardSwitcher: NSObject, Automation {
         let cfg = configManager.config.keyboardSwitcher
         if let mac = cfg.macLayout, let pc = cfg.pcLayout { return (mac: mac, pc: pc) }
         guard let listRef = TISCreateInputSourceList(nil, false) else { return nil }
-        let sources = listRef.takeRetainedValue() as! [TISInputSource]
+        let sources = listRef.takeRetainedValue() as? [TISInputSource] ?? []
         var layoutIDs: [String] = []
         for source in sources {
             guard let ptr = TISGetInputSourceProperty(source, kTISPropertyInputSourceID) else { continue }

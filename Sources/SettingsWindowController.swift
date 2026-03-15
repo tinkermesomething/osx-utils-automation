@@ -8,8 +8,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     // Controls
     private var autoDetectCheckbox: NSButton!
-    private var macLayoutPopup: NSPopUpButton!
-    private var pcLayoutPopup:  NSPopUpButton!
+    private var macLayoutPopup:     NSPopUpButton!
+    private var pcLayoutPopup:      NSPopUpButton!
 
     // All available layout IDs, in display order
     private var availableLayouts: [String] = []
@@ -22,6 +22,11 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     func showWindow() {
         if window == nil { buildWindow() }
         populateAndSync()
+        // Re-size to content each time it opens so larger fonts are accommodated
+        if let content = window?.contentView {
+            content.layoutSubtreeIfNeeded()
+            window?.setContentSize(content.fittingSize)
+        }
         window?.center()
         window?.makeKeyAndOrderFront(nil)
         NSApp.activate(ignoringOtherApps: true)
@@ -31,64 +36,97 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     private func buildWindow() {
         let w = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 210),
+            contentRect: .zero,
             styleMask:   [.titled, .closable],
             backing:     .buffered,
             defer:       false
         )
-        w.title        = "osx-utils-automation — Settings"
-        w.delegate     = self
+        w.title                = "osx-utils-automation — Settings"
+        w.delegate             = self
         w.isReleasedWhenClosed = false
 
         let content = w.contentView!
 
-        // ── Section header ──────────────────────────────────────────────
-        let header = label("Keyboard Layout Switcher", bold: true)
-        header.frame = NSRect(x: 20, y: 168, width: 340, height: 18)
-        content.addSubview(header)
+        // ── Section header ───────────────────────────────────────────────
+        let header = makeLabel("Keyboard Layout Switcher", bold: true)
 
         let divider = NSBox()
         divider.boxType = .separator
-        divider.frame   = NSRect(x: 20, y: 158, width: 340, height: 1)
-        content.addSubview(divider)
 
-        // ── Auto-detect checkbox ────────────────────────────────────────
-        autoDetectCheckbox = NSButton(checkboxWithTitle: "Auto-detect from enabled input sources",
-                                      target: self, action: #selector(autoDetectToggled))
-        autoDetectCheckbox.frame = NSRect(x: 20, y: 130, width: 340, height: 20)
-        content.addSubview(autoDetectCheckbox)
+        // ── Auto-detect checkbox ─────────────────────────────────────────
+        autoDetectCheckbox = NSButton(
+            checkboxWithTitle: "Auto-detect from enabled input sources",
+            target: self, action: #selector(autoDetectToggled)
+        )
 
-        // ── Mac layout row ──────────────────────────────────────────────
-        let macLabel = label("Mac layout:")
-        macLabel.frame = NSRect(x: 20, y: 98, width: 90, height: 20)
+        // ── Mac layout row ───────────────────────────────────────────────
+        let macLabel = makeLabel("Mac layout:")
         macLabel.alignment = .right
-        content.addSubview(macLabel)
+        macLabel.widthAnchor.constraint(equalToConstant: 90).isActive = true
+        macLayoutPopup = NSPopUpButton()
 
-        macLayoutPopup = NSPopUpButton(frame: NSRect(x: 118, y: 96, width: 240, height: 24))
-        content.addSubview(macLayoutPopup)
+        let macRow = NSStackView(views: [macLabel, macLayoutPopup])
+        macRow.orientation = .horizontal
+        macRow.spacing     = 8
 
-        // ── PC layout row ───────────────────────────────────────────────
-        let pcLabel = label("PC layout:")
-        pcLabel.frame = NSRect(x: 20, y: 62, width: 90, height: 20)
+        // ── PC layout row ────────────────────────────────────────────────
+        let pcLabel = makeLabel("PC layout:")
         pcLabel.alignment = .right
-        content.addSubview(pcLabel)
+        pcLabel.widthAnchor.constraint(equalToConstant: 90).isActive = true
+        pcLayoutPopup = NSPopUpButton()
 
-        pcLayoutPopup = NSPopUpButton(frame: NSRect(x: 118, y: 60, width: 240, height: 24))
-        content.addSubview(pcLayoutPopup)
+        let pcRow = NSStackView(views: [pcLabel, pcLayoutPopup])
+        pcRow.orientation = .horizontal
+        pcRow.spacing     = 8
 
-        // ── Buttons ─────────────────────────────────────────────────────
+        // ── Button row ───────────────────────────────────────────────────
         let cancelBtn = NSButton(title: "Cancel", target: self, action: #selector(cancel))
-        cancelBtn.frame     = NSRect(x: 208, y: 16, width: 70, height: 28)
-        cancelBtn.bezelStyle = .rounded
-        cancelBtn.keyEquivalent = "\u{1b}"  // Escape
-        content.addSubview(cancelBtn)
+        cancelBtn.bezelStyle    = .rounded
+        cancelBtn.keyEquivalent = "\u{1b}"
 
         let saveBtn = NSButton(title: "Save", target: self, action: #selector(save))
-        saveBtn.frame     = NSRect(x: 290, y: 16, width: 70, height: 28)
-        saveBtn.bezelStyle = .rounded
-        saveBtn.keyEquivalent = "\r"        // Enter
+        saveBtn.bezelStyle    = .rounded
+        saveBtn.keyEquivalent = "\r"
         saveBtn.highlight(true)
-        content.addSubview(saveBtn)
+
+        // Spacer pushes buttons to the right
+        let spacer = NSView()
+        spacer.setContentHuggingPriority(.defaultLow, for: .horizontal)
+
+        let buttonRow = NSStackView(views: [spacer, cancelBtn, saveBtn])
+        buttonRow.orientation = .horizontal
+        buttonRow.spacing     = 8
+
+        // ── Main vertical stack ──────────────────────────────────────────
+        let stack = NSStackView(views: [header, divider, autoDetectCheckbox, macRow, pcRow, buttonRow])
+        stack.orientation = .vertical
+        stack.alignment   = .leading
+        stack.spacing     = 10
+        stack.translatesAutoresizingMaskIntoConstraints = false
+
+        // Wider spacing around the divider and before buttons
+        stack.setCustomSpacing(4,  after: header)
+        stack.setCustomSpacing(12, after: autoDetectCheckbox)
+        stack.setCustomSpacing(16, after: pcRow)
+
+        // Rows and button row fill the full width
+        for view in [divider, autoDetectCheckbox!, macRow, pcRow, buttonRow] {
+            view.translatesAutoresizingMaskIntoConstraints = false
+            stack.addConstraint(
+                view.widthAnchor.constraint(equalTo: stack.widthAnchor)
+            )
+        }
+
+        // Minimum width so dropdowns have enough room
+        stack.widthAnchor.constraint(greaterThanOrEqualToConstant: 360).isActive = true
+
+        content.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: content.topAnchor,        constant: 20),
+            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor,   constant: 20),
+            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor,  constant: -20),
+            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor,     constant: -20),
+        ])
 
         self.window = w
     }
@@ -104,8 +142,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             popup!.addItems(withTitles: shortNames)
         }
 
-        let cfg       = configManager.config.keyboardSwitcher
-        let isAuto    = cfg.macLayout == nil && cfg.pcLayout == nil
+        let cfg    = configManager.config.keyboardSwitcher
+        let isAuto = cfg.macLayout == nil && cfg.pcLayout == nil
         autoDetectCheckbox.state = isAuto ? .on : .off
 
         if !isAuto {
@@ -116,7 +154,6 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
                 pcLayoutPopup.selectItem(at: idx)
             }
         } else {
-            // Auto-detect: pre-select what would be detected
             if let detected = autoDetect() {
                 if let idx = availableLayouts.firstIndex(of: detected.mac) { macLayoutPopup.selectItem(at: idx) }
                 if let idx = availableLayouts.firstIndex(of: detected.pc)  { pcLayoutPopup.selectItem(at: idx) }
@@ -128,7 +165,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
 
     private func fetchAvailableLayouts() -> [String] {
         guard let listRef = TISCreateInputSourceList(nil, false) else { return [] }
-        let sources = listRef.takeRetainedValue() as! [TISInputSource]
+        let sources = listRef.takeRetainedValue() as? [TISInputSource] ?? []
         return sources.compactMap { source -> String? in
             guard let ptr = TISGetInputSourceProperty(source, kTISPropertyInputSourceID) else { return nil }
             let id = Unmanaged<CFString>.fromOpaque(ptr).takeUnretainedValue() as String
@@ -160,13 +197,19 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             let selMac = macLayoutPopup.indexOfSelectedItem
             let selPc  = pcLayoutPopup.indexOfSelectedItem
             guard selMac >= 0, selPc >= 0,
-                  selMac < availableLayouts.count, selPc < availableLayouts.count else { return }
+                  selMac < availableLayouts.count, selPc < availableLayouts.count else {
+                let alert = NSAlert()
+                alert.messageText    = "Invalid layout selection"
+                alert.informativeText = "Please select a valid Mac and PC layout from the dropdowns."
+                alert.alertStyle     = .warning
+                alert.runModal()
+                return
+            }
             configManager.setKeyboardLayouts(
                 mac: availableLayouts[selMac],
                 pc:  availableLayouts[selPc]
             )
         }
-        // Notify automations directly so they pick up the new layout immediately
         configManager.onChanged?()
         window?.close()
     }
@@ -180,7 +223,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         pcLayoutPopup.isEnabled  = enabled
     }
 
-    private func label(_ title: String, bold: Bool = false) -> NSTextField {
+    private func makeLabel(_ title: String, bold: Bool = false) -> NSTextField {
         let tf = NSTextField(labelWithString: title)
         tf.font = bold
             ? NSFont.boldSystemFont(ofSize: NSFont.systemFontSize)
@@ -192,6 +235,5 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
         id.replacingOccurrences(of: "com.apple.keylayout.", with: "")
     }
 
-    // NSWindowDelegate — nothing to do, just prevent dealloc on close
     func windowWillClose(_ notification: Notification) {}
 }
