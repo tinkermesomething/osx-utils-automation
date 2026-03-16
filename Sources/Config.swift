@@ -13,8 +13,10 @@ let LOG_URL = FileManager.default.homeDirectoryForCurrentUser
 // MARK: - Model
 
 struct Config: Codable {
-    var keyboardSwitcher = KeyboardSwitcherConfig()
-    var dockWatcher      = DockWatcherConfig()
+    var keyboardSwitcher  = KeyboardSwitcherConfig()
+    var dockWatcher       = DockWatcherConfig()
+    var registeredModules = ["keyboard-switcher", "dock-watcher"]
+    var skippedVersions   = [String]()
 
     struct KeyboardSwitcherConfig: Codable {
         var enabled: Bool
@@ -50,8 +52,12 @@ struct Config: Codable {
 
     init(from decoder: Decoder) throws {
         let c = try decoder.container(keyedBy: CodingKeys.self)
-        keyboardSwitcher = try c.decodeIfPresent(KeyboardSwitcherConfig.self, forKey: .keyboardSwitcher) ?? KeyboardSwitcherConfig()
-        dockWatcher      = try c.decodeIfPresent(DockWatcherConfig.self,      forKey: .dockWatcher)      ?? DockWatcherConfig()
+        keyboardSwitcher  = try c.decodeIfPresent(KeyboardSwitcherConfig.self, forKey: .keyboardSwitcher) ?? KeyboardSwitcherConfig()
+        dockWatcher       = try c.decodeIfPresent(DockWatcherConfig.self,      forKey: .dockWatcher)      ?? DockWatcherConfig()
+        // Default: both modules registered — existing users keep their current setup
+        registeredModules = try c.decodeIfPresent([String].self, forKey: .registeredModules)
+                         ?? ["keyboard-switcher", "dock-watcher"]
+        skippedVersions   = try c.decodeIfPresent([String].self, forKey: .skippedVersions) ?? []
     }
 }
 
@@ -109,6 +115,29 @@ final class ConfigManager {
         case "keyboard-switcher": config.keyboardSwitcher.enabled = enabled
         case "dock-watcher":      config.dockWatcher.enabled      = enabled
         default: break
+        }
+        save()
+    }
+
+    func setRegistered(moduleId: String, registered: Bool) {
+        if registered {
+            if !config.registeredModules.contains(moduleId) {
+                config.registeredModules.append(moduleId)
+            }
+        } else {
+            config.registeredModules.removeAll { $0 == moduleId }
+        }
+        save()
+    }
+
+    func setRegisteredModules(_ modules: [String]) {
+        config.registeredModules = modules
+        save()
+    }
+
+    func skipVersion(_ version: String) {
+        if !config.skippedVersions.contains(version) {
+            config.skippedVersions.append(version)
         }
         save()
     }

@@ -1,0 +1,46 @@
+{
+  "project": "osx-utils-automation",
+  "current_version": {
+    "status": "in_progress",
+    "target": "1.1.0",
+    "date": "2026-03-16",
+    "summary": "Module registry, settings redesign (sidebar+detail), update mechanism"
+  },
+  "completed_tasks": [
+    {
+      "id": "step1-closuremenuitem",
+      "title": "ClosureMenuItem helper",
+      "files": ["Sources/ClosureMenuItem.swift"]
+    },
+    {
+      "id": "step2-module-registry",
+      "title": "ModuleRegistry — descriptor-driven, FSEvents reload, activate/deactivate",
+      "files": ["Sources/ModuleRegistry.swift", "Sources/AppDelegate.swift"]
+    },
+    {
+      "id": "step3-settings-redesign",
+      "title": "Settings window redesign — sidebar+detail (General/Modules/Keyboard/Dock panels)",
+      "files": ["Sources/SettingsWindowController.swift", "Sources/LaunchAtLogin.swift", "Sources/MenuBarController.swift"]
+    },
+    {
+      "id": "step3a-settings-polish",
+      "title": "Settings polish — Launch at Login in General tab, External keyboard label, OSX layout label, Dock live status, window sizing via fittingSize",
+      "files": ["Sources/SettingsWindowController.swift"]
+    },
+    {
+      "id": "step4-update-mechanism",
+      "title": "Update mechanism — GitHub releases API polling, UpdateWindowController, skip-version support, Check for Updates menu item",
+      "files": [
+        "Sources/UpdateChecker.swift",
+        "Sources/UpdateWindowController.swift",
+        "Sources/Config.swift",
+        "Sources/AppDelegate.swift",
+        "Sources/MenuBarController.swift"
+      ]
+    }
+  ],
+  "deferred_to_next_version": [
+    "Code signing + notarization (pending Apple Developer account)",
+    "Custom automation wizard"
+  ]
+}
