@@ -19,8 +19,10 @@ cd - > /dev/null
 echo "==> Building app bundle at $APP_DST"
 VERSION="$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')"
 mkdir -p "$APP_DST/Contents/MacOS"
+mkdir -p "$APP_DST/Contents/Resources"
 cp "$SCRIPT_DIR/.build/release/$APP_NAME" "$BINARY_DST"
 sed "s|VERSION_PLACEHOLDER|$VERSION|g" "$SCRIPT_DIR/Resources/Info.plist" > "$APP_DST/Contents/Info.plist"
+cp "$SCRIPT_DIR/Resources/AppIcon.icns" "$APP_DST/Contents/Resources/AppIcon.icns"
 chmod +x "$BINARY_DST"
 
 echo "==> Installing LaunchAgent plist to $PLIST_DST"
