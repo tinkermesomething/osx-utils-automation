@@ -79,7 +79,9 @@ pkgbuild \
     "$UNINSTALLER_PKG"
 
 # ── 6. Clean up temp dirs ─────────────────────────────────────────────────────
-rm -rf "$PKG_ROOT" "$UNINSTALL_SCRIPTS" "$EMPTY_ROOT"
+# Also remove the app bundle from the repo root — if left here macOS installer
+# will "relocate" future installs to this path instead of /Applications.
+rm -rf "$PKG_ROOT" "$UNINSTALL_SCRIPTS" "$EMPTY_ROOT" "$APP_BUNDLE"
 
 echo ""
 echo "Done."
