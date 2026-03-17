@@ -1,7 +1,7 @@
 # osx-utils-automation
 
 <p align="center">
-  <img src="osx-utils-automation_icon_2.jpg" alt="osx-utils-automation icon" width="128">
+  <img src="Resources/AppIcon.iconset/icon_512x512.png" alt="osx-utils-automation icon" width="128">
 </p>
 
 macOS has no built-in way to react to hardware events. Connecting a USB keyboard doesn't switch your input layout. Plugging in a dock doesn't launch the software it needs. You end up doing the same manual steps every time — switching layouts, launching DisplayLink, killing it when you unplug.
