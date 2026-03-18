@@ -219,9 +219,9 @@ final class UserModuleWizardController: NSWindowController {
         let sub = stepSubtitle("What kind of device triggers this automation?")
         v.addSubview(sub)
 
-        usbRadio         = radioButton("USB device", tag: 0)
-        bluetoothRadio   = radioButton("Bluetooth device", tag: 1)
-        thunderboltRadio = radioButton("Thunderbolt device", tag: 2)
+        usbRadio         = radioButton("USB device",         tag: 0, action: #selector(eventTypeChanged(_:)))
+        bluetoothRadio   = radioButton("Bluetooth device",   tag: 1, action: #selector(eventTypeChanged(_:)))
+        thunderboltRadio = radioButton("Thunderbolt device", tag: 2, action: #selector(eventTypeChanged(_:)))
         usbRadio.state   = .on
 
         [usbRadio, bluetoothRadio, thunderboltRadio].forEach { v.addSubview($0!) }
@@ -516,7 +516,15 @@ final class UserModuleWizardController: NSWindowController {
             scannedUSBDevices = DeviceScanner.connectedUSBDevices()
             scannedBTDevices  = []
             deviceTable.reloadData()
-            deviceTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+            // Pre-select the previously configured device if it's still connected
+            var rowToSelect = 0
+            if let vid = editing?.trigger.deviceVendorID,
+               let pid = editing?.trigger.deviceProductID,
+               let idx = scannedUSBDevices.firstIndex(where: { $0.vendorID == vid && $0.productID == pid }) {
+                rowToSelect = idx + 1  // +1 for "Any device" sentinel row
+            }
+            selectedDeviceIndex = rowToSelect
+            deviceTable.selectRowIndexes(IndexSet(integer: rowToSelect), byExtendingSelection: false)
 
         case .bluetooth:
             deviceTableScroll.isHidden = false
@@ -525,7 +533,14 @@ final class UserModuleWizardController: NSWindowController {
             scannedBTDevices  = DeviceScanner.pairedBluetoothDevices()
             scannedUSBDevices = []
             deviceTable.reloadData()
-            deviceTable.selectRowIndexes(IndexSet(integer: 0), byExtendingSelection: false)
+            // Pre-select the previously configured device if it's still paired
+            var rowToSelect = 0
+            if let addr = editing?.trigger.bluetoothAddress,
+               let idx = scannedBTDevices.firstIndex(where: { $0.address == addr }) {
+                rowToSelect = idx + 1
+            }
+            selectedDeviceIndex = rowToSelect
+            deviceTable.selectRowIndexes(IndexSet(integer: rowToSelect), byExtendingSelection: false)
 
         case .thunderbolt:
             deviceTableScroll.isHidden = true
@@ -642,6 +657,10 @@ final class UserModuleWizardController: NSWindowController {
                     : disconnectScriptField.stringValue
                 guard !path.isEmpty, FileManager.default.fileExists(atPath: path) else {
                     showError("Script not found at the specified path.")
+                    return false
+                }
+                guard access(path, X_OK) == 0 else {
+                    showError("Script is not executable. Run: chmod +x \"\(path)\"")
                     return false
                 }
             }
@@ -902,8 +921,15 @@ final class UserModuleWizardController: NSWindowController {
         return f
     }
 
-    private func radioButton(_ title: String, tag: Int) -> NSButton {
-        let b = NSButton(radioButtonWithTitle: title, target: nil, action: nil)
+    @objc private func eventTypeChanged(_ sender: NSButton) {
+        // Enforce mutual exclusion — AppKit doesn't auto-group standalone radio buttons
+        usbRadio.state         = (sender === usbRadio)         ? .on : .off
+        bluetoothRadio.state   = (sender === bluetoothRadio)   ? .on : .off
+        thunderboltRadio.state = (sender === thunderboltRadio) ? .on : .off
+    }
+
+    private func radioButton(_ title: String, tag: Int, action: Selector) -> NSButton {
+        let b = NSButton(radioButtonWithTitle: title, target: self, action: action)
         b.tag = tag
         b.translatesAutoresizingMaskIntoConstraints = false
         return b

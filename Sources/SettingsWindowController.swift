@@ -801,6 +801,8 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
     }
 
     private func openWizard(editing: UserModuleConfig?) {
+        // Close any existing wizard window before replacing the controller
+        wizardController?.window?.close()
         wizardController = UserModuleWizardController(configManager: configManager, editing: editing)
 
         wizardController?.onSave = { [weak self] module in

@@ -32,6 +32,8 @@ final class UserModuleRunner: NSObject, Automation {
     private var notifyPort:       IONotificationPortRef?
     private var connectIterator:  io_iterator_t = IO_OBJECT_NULL
     private var removeIterator:   io_iterator_t = IO_OBJECT_NULL
+    // passRetained context pointer — must be released exactly once in stopIOKitMonitoring()
+    private var hidContext:       UnsafeMutableRawPointer?
 
     // Bluetooth notification tokens
     private var btConnectNotification:    IOBluetoothUserNotification?
@@ -63,8 +65,11 @@ final class UserModuleRunner: NSObject, Automation {
 
     func stop() {
         isEnabled = false
-        stopUSBMonitoring()
-        stopBluetoothMonitoring()
+        // Gate cleanup on event type — only one of these will have been started
+        switch moduleConfig.trigger.eventType {
+        case .usb, .thunderbolt: stopIOKitMonitoring()
+        case .bluetooth:         stopBluetoothMonitoring()
+        }
         connectScriptProcess?.terminate()
         connectScriptProcess = nil
         disconnectScriptProcess?.terminate()
@@ -82,11 +87,13 @@ final class UserModuleRunner: NSObject, Automation {
             if isEnabled { stop() }
             return
         }
-        let wasEnabled = moduleConfig.enabled
+        let wasRunning = isEnabled  // use runtime flag, not config flag (B3)
         moduleConfig = updated
-        if updated.enabled && !wasEnabled { start(); return }
-        if !updated.enabled && wasEnabled { stop() }
-        // Other field changes (name, actions, notifications) are read live — no restart needed
+        if updated.enabled && !wasRunning { start(); return }
+        if !updated.enabled && wasRunning { stop();  return }
+        // Module stays enabled — restart to rebuild IOKit matching dict with updated
+        // trigger criteria (device VID/PID, BT address). Notifications/actions read live.
+        if isEnabled { stop(); start() }
     }
 
     // MARK: - USB Monitoring
@@ -98,6 +105,7 @@ final class UserModuleRunner: NSObject, Automation {
 
         let matchingDict = usbMatchingDict()
         let selfPtr = Unmanaged.passRetained(self).toOpaque()
+        hidContext = selfPtr  // stored for balanced release in stopIOKitMonitoring()
 
         var connectIt: io_iterator_t = IO_OBJECT_NULL
         let connectErr = IOServiceAddMatchingNotification(
@@ -148,12 +156,12 @@ final class UserModuleRunner: NSObject, Automation {
         status = .ok("Watching for \(moduleConfig.trigger.deviceName)")
     }
 
-    private func stopUSBMonitoring() {
+    private func stopIOKitMonitoring() {
         if connectIterator != IO_OBJECT_NULL { IOObjectRelease(connectIterator); connectIterator = IO_OBJECT_NULL }
         if removeIterator  != IO_OBJECT_NULL { IOObjectRelease(removeIterator);  removeIterator  = IO_OBJECT_NULL }
         if let port = notifyPort { IONotificationPortDestroy(port); notifyPort = nil }
-        // Balance the passRetained from start
-        Unmanaged.passUnretained(self).release()
+        // Balance the single passRetained from start — fromOpaque on the stored pointer
+        if let ctx = hidContext { Unmanaged<UserModuleRunner>.fromOpaque(ctx).release(); hidContext = nil }
     }
 
     private func usbMatchingDict() -> NSMutableDictionary {
@@ -259,6 +267,7 @@ final class UserModuleRunner: NSObject, Automation {
         tbDict["IOPCITunnelled"] = true
 
         let selfPtr = Unmanaged.passRetained(self).toOpaque()
+        hidContext = selfPtr  // stored for balanced release in stopIOKitMonitoring()
 
         var connectIt: io_iterator_t = IO_OBJECT_NULL
         let connectErr = IOServiceAddMatchingNotification(
@@ -375,7 +384,8 @@ final class UserModuleRunner: NSObject, Automation {
                 status = .degraded("App not found: \(action.appName ?? bundleID)")
                 return
             }
-            NSWorkspace.shared.openApplication(at: url, configuration: .init()) { _, error in
+            NSWorkspace.shared.openApplication(at: url, configuration: .init()) { [weak self] _, error in
+                guard let self else { return }
                 if let error {
                     log("UserModule[\(self.moduleConfig.name)]: Launch failed — \(error.localizedDescription)")
                     self.status = .degraded("Failed to launch \(action.appName ?? bundleID)")

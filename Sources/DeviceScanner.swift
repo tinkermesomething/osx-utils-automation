@@ -50,9 +50,8 @@ enum DeviceScanner {
             // Skip Apple-internal devices (keyboards, trackpads, cameras, hubs)
             guard vendorID != 0x05AC else { continue }
 
-            let name = (dict[kUSBProductString] as? String)
-                    ?? (dict["USB Product Name"] as? String)
-                    ?? "Unknown USB Device"
+            // kUSBProductString == "USB Product Name" — one lookup is sufficient
+            let name = (dict[kUSBProductString] as? String) ?? "Unknown USB Device"
 
             results.append(DiscoveredUSBDevice(name: name, vendorID: vendorID, productID: productID))
         }
