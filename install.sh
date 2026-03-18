@@ -32,6 +32,12 @@ echo "==> Ad-hoc signing app bundle..."
 # ("Notifications are not allowed for this application").
 codesign --sign - --force --deep "$APP_DST"
 
+echo "==> Resetting Input Monitoring permission..."
+# Ad-hoc signing produces a new hash on every build — macOS silently revokes the
+# TCC permission after reinstall, leaving a stale entry with no re-prompt.
+# Resetting forces a clean Allow dialog on next launch.
+tccutil reset ListenEvent "com.local.$APP_NAME" 2>/dev/null || true
+
 echo "==> Installing LaunchAgent plist to $PLIST_DST"
 sed \
     -e "s|BINARY_PATH_PLACEHOLDER|$BINARY_DST|g" \

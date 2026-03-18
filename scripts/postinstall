@@ -35,6 +35,13 @@ chmod 644 "$PLIST_DST"
 # Without at least an ad-hoc signature, requestAuthorization returns UNError Code=1.
 codesign --sign - --force --deep "$APP_DST"
 
+# Reset Input Monitoring (ListenEvent) TCC permission for this bundle ID.
+# Ad-hoc signing produces a new hash on every build, so macOS silently revokes
+# the permission after an upgrade — leaving a stale entry with no re-prompt.
+# Resetting here forces macOS to prompt again on next launch, giving the user
+# a clean Allow dialog instead of a broken/silent failure.
+tccutil reset ListenEvent "com.local.$APP_NAME" 2>/dev/null || true
+
 # Register the app bundle with LaunchServices so macOS recognises it as
 # notification-capable (required for UNUserNotificationCenter to grant permission
 # when launched as a LaunchAgent directly by launchd).
