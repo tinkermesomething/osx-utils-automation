@@ -41,8 +41,14 @@ codesign --sign - --force --deep "$APP_DST"
 LSREGISTER="/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister"
 "$LSREGISTER" -f "$APP_DST"
 
-# Reload the agent (bootout first so plist changes are always picked up)
+# Stop any running instance before reloading — without this the old binary stays
+# in memory while the new one is installed, leaving two processes running.
+# bootout unregisters the agent; pkill terminates the live process.
 sudo -u "$CONSOLE_USER" launchctl bootout "gui/$USER_UID/$PLIST_LABEL" 2>/dev/null || true
+pkill -x "$APP_NAME" 2>/dev/null || true
+sleep 1
+
+# Re-register and start the updated version
 sudo -u "$CONSOLE_USER" launchctl bootstrap "gui/$USER_UID" "$PLIST_DST"
 
 echo ""

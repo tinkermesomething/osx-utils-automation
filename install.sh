@@ -59,9 +59,9 @@ launchctl asuser "$USER_UID" /usr/bin/pkill -x "$APP_NAME" 2>/dev/null || true
 sleep 1
 
 echo "==> Loading LaunchAgent..."
-# Always attempt bootout first — even if the agent appears stopped, it may be
-# in a broken state (e.g. binary was deleted without a proper unload).
+# Stop any running instance before reloading so the old binary doesn't linger.
 launchctl bootout "gui/$USER_UID/$PLIST_LABEL" 2>/dev/null || true
+pkill -x "$APP_NAME" 2>/dev/null || true
 sleep 1
 launchctl bootstrap "gui/$USER_UID" "$PLIST_DST"
 echo "==> Agent loaded."
