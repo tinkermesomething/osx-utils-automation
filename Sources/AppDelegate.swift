@@ -44,7 +44,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 case .upToDate:
                     let alert = NSAlert()
                     alert.messageText     = "You're up to date"
-                    alert.informativeText = "osx-utils-automation is already running the latest version."
+                    alert.informativeText = "latch is already running the latest version."
                     alert.alertStyle      = .informational
                     alert.addButton(withTitle: "OK")
                     NSApp.activate(ignoringOtherApps: true)
@@ -93,6 +93,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             self.updateChecker.checkAsync(skippedVersions: self.configManager.config.skippedVersions)
         }
 
-        log("osx-utils-automation started")
+        log("latch started")
     }
 }

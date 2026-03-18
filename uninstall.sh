@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="osx-utils-automation"
+APP_NAME="latch"
 PLIST_LABEL="com.local.$APP_NAME"
 PLIST_DST="$HOME/Library/LaunchAgents/$PLIST_LABEL.plist"
 APP_DST="/Applications/$APP_NAME.app"

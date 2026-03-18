@@ -1,5 +1,5 @@
-osx-utils-automation
-osx-utils-automation.app
+latch
+latch.app
 .build/
 dist/
 pkg-root/
@@ -8,3 +8,7 @@ uninstall-scripts/
 *.o
 *.d
 PLAN.md
+.DS_Store
+*.jpg
+*.png
+osx-utils-automation

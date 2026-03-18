@@ -131,7 +131,7 @@ final class UpdateWindowController: NSWindowController {
     }
 
     private func updateContent() {
-        titleLabel.stringValue = "osx-utils-automation \(releaseInfo.version) is available"
+        titleLabel.stringValue = "latch \(releaseInfo.version) is available"
         let notes = releaseInfo.releaseNotes.isEmpty ? "(No release notes provided.)" : releaseInfo.releaseNotes
         notesText.string = notes
     }

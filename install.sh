@@ -2,7 +2,7 @@
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="osx-utils-automation"
+APP_NAME="latch"
 APP_BUNDLE="$APP_NAME.app"
 INSTALL_DIR="/Applications"
 APP_DST="$INSTALL_DIR/$APP_BUNDLE"

@@ -64,7 +64,7 @@ final class WelcomeWindowController: NSWindowController {
             backing:     .buffered,
             defer:       false
         )
-        w.title                = "Welcome to osx-utils-automation"
+        w.title                = "Welcome to latch"
         w.isReleasedWhenClosed = false
 
         let content = w.contentView!

@@ -19,7 +19,7 @@ enum UpdateResult {
 final class UpdateChecker {
 
     private let currentVersion: String
-    private let releasesURL = URL(string: "https://api.github.com/repos/tinkermesomething/osx-utils-automation/releases/latest")!
+    private let releasesURL = URL(string: "https://api.github.com/repos/tinkermesomething/latch/releases/latest")!
 
     /// Called on main queue when a newer, non-skipped release is found (background/auto checks).
     var onUpdateAvailable: ((ReleaseInfo) -> Void)?

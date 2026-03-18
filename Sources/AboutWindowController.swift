@@ -22,7 +22,7 @@ final class AboutWindowController: NSObject {
             backing:     .buffered,
             defer:       false
         )
-        win.title = "About osx-utils-automation"
+        win.title = "About latch"
         win.isReleasedWhenClosed = false
 
         let content = win.contentView!
@@ -37,7 +37,7 @@ final class AboutWindowController: NSObject {
         ])
 
         // ── Labels ───────────────────────────────────────────────────────
-        let nameLabel = NSTextField(labelWithString: "osx-utils-automation")
+        let nameLabel = NSTextField(labelWithString: "latch")
         nameLabel.font      = NSFont.boldSystemFont(ofSize: NSFont.systemFontSize + 2)
         nameLabel.alignment = .center
 
@@ -91,7 +91,7 @@ final class AboutWindowController: NSObject {
     }
 
     @objc private func openRepo() {
-        if let url = URL(string: "https://github.com/tinkermesomething/osx-utils-automation") {
+        if let url = URL(string: "https://github.com/tinkermesomething/latch") {
             NSWorkspace.shared.open(url)
         }
     }

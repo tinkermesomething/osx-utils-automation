@@ -3,12 +3,12 @@ import AppKit
 // MARK: - Paths
 
 let CONFIG_DIR = FileManager.default.homeDirectoryForCurrentUser
-    .appendingPathComponent(".config/osx-utils-automation")
+    .appendingPathComponent(".config/latch")
 
 let CONFIG_URL = CONFIG_DIR.appendingPathComponent("config.json")
 
 let LOG_URL = FileManager.default.homeDirectoryForCurrentUser
-    .appendingPathComponent("Library/Logs/osx-utils-automation.log")
+    .appendingPathComponent("Library/Logs/latch.log")
 
 // MARK: - Model
 

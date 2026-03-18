@@ -2,11 +2,11 @@
 import PackageDescription
 
 let package = Package(
-    name: "osx-utils-automation",
+    name: "latch",
     platforms: [.macOS(.v13)],
     targets: [
         .executableTarget(
-            name: "osx-utils-automation",
+            name: "latch",
             path: "Sources",
             linkerSettings: [
                 .linkedFramework("AppKit"),

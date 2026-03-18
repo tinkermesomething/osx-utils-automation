@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-APP_NAME="osx-utils-automation"
+APP_NAME="latch"
 PLIST_LABEL="com.local.$APP_NAME"
 APP_DST="/Applications/$APP_NAME.app"
 BINARY="$APP_DST/Contents/MacOS/$APP_NAME"
@@ -46,7 +46,7 @@ sudo -u "$CONSOLE_USER" launchctl bootout "gui/$USER_UID/$PLIST_LABEL" 2>/dev/nu
 sudo -u "$CONSOLE_USER" launchctl bootstrap "gui/$USER_UID" "$PLIST_DST"
 
 echo ""
-echo "osx-utils-automation installed."
+echo "latch installed."
 echo "IMPORTANT: Grant Input Monitoring permission for the keyboard switcher:"
 echo "  System Settings > Privacy & Security > Input Monitoring"
 echo "  Add: $BINARY"

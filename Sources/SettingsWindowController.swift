@@ -92,7 +92,7 @@ final class SettingsWindowController: NSObject, NSWindowDelegate {
             backing:     .buffered,
             defer:       false
         )
-        w.title                = "Settings — osx-utils-automation"
+        w.title                = "Settings — latch"
         w.delegate             = self
         w.isReleasedWhenClosed = false
 

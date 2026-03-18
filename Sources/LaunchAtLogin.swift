@@ -2,7 +2,7 @@ import Foundation
 
 enum LaunchAtLogin {
 
-    private static let label    = "com.local.osx-utils-automation"
+    private static let label    = "com.local.latch"
     private static var plistPath: String {
         "\(NSHomeDirectory())/Library/LaunchAgents/\(label).plist"
     }

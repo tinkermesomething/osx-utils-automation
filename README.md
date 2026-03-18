@@ -1,10 +1,10 @@
-# osx-utils-automation
+# latch
 
 <p align="center">
-  <img src="Resources/AppIcon.iconset/icon_512x512.png" alt="osx-utils-automation icon" width="128">
+  <img src="Resources/AppIcon.iconset/icon_512x512.png" alt="latch icon" width="128">
 </p>
 
-Most tools that react to USB devices only see plug/unplug events — they can't tell which keyboard you're *actually typing on*. osx-utils-automation monitors the live HID input stream, so it knows the moment you switch keyboards and reacts instantly, even when multiple are connected at the same time.
+Most tools that react to USB devices only see plug/unplug events — they can't tell which keyboard you're *actually typing on*. latch monitors the live HID input stream, so it knows the moment you switch keyboards and reacts instantly, even when multiple are connected at the same time.
 
 It runs silently in the menu bar, watches for both hardware events and active input, and handles the repetitive stuff automatically.
 
@@ -28,7 +28,7 @@ A welcome wizard walks you through setup on first launch — module selection, k
 
 ## Installation
 
-1. Download `osx-utils-automation-{version}.pkg` from the [latest release](../../releases/latest) and double-click to install.
+1. Download `latch-{version}.pkg` from the [latest release](../../releases/latest) and double-click to install.
 2. After the wizard completes, grant **Input Monitoring** permission when prompted (required for the keyboard switcher):
    `System Settings → Privacy & Security → Input Monitoring → add the app`
 
@@ -36,7 +36,7 @@ A welcome wizard walks you through setup on first launch — module selection, k
 
 ## Uninstallation
 
-Download and run `osx-utils-automation-uninstaller-{version}.pkg` from the same release.
+Download and run `latch-uninstaller-{version}.pkg` from the same release.
 
 Then remove the Input Monitoring entry manually:
 `System Settings → Privacy & Security → Input Monitoring`
@@ -68,7 +68,7 @@ Module tabs only appear in the sidebar when that module is enabled.
 
 [autokbisw](https://github.com/ohueter/autokbisw) handles per-keyboard input source switching and is solid if you're comfortable with a headless daemon and no GUI. [Hammerspoon](https://www.hammerspoon.org) can do both automations with Lua scripting. [Keyboard Maestro](https://www.keyboardmaestro.com) ($36) covers both via USB triggers.
 
-osx-utils-automation targets non-technical users — no config files, no scripting, one-click installer, guided setup wizard, menu bar UI — and combines keyboard switching and dock automation in a single lightweight app.
+latch targets non-technical users — no config files, no scripting, one-click installer, guided setup wizard, menu bar UI — and combines keyboard switching and dock automation in a single lightweight app.
 
 ## Roadmap
 
@@ -88,11 +88,11 @@ bash install.sh
 
 ## Configuration
 
-Config is stored at `~/.config/osx-utils-automation/config.json` and is reloaded automatically when changed.
+Config is stored at `~/.config/latch/config.json` and is reloaded automatically when changed.
 
 ## Logs
 
-`~/Library/Logs/osx-utils-automation.log` — or click **Open Logs** in the menu.
+`~/Library/Logs/latch.log` — or click **Open Logs** in the menu.
 
 ## Security disclaimer
 

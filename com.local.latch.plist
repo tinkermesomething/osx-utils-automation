@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
     <key>Label</key>
-    <string>com.local.osx-utils-automation</string>
+    <string>com.local.latch</string>
 
     <key>ProgramArguments</key>
     <array>

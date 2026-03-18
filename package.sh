@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # Builds the app bundle and produces:
-#   dist/osx-utils-automation-{version}.pkg          (installer)
-#   dist/osx-utils-automation-uninstaller-{version}.pkg  (uninstaller)
+#   dist/latch-{version}.pkg          (installer)
+#   dist/latch-uninstaller-{version}.pkg  (uninstaller)
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-APP_NAME="osx-utils-automation"
+APP_NAME="latch"
 PLIST_LABEL="com.local.$APP_NAME"
 VERSION="$(cat "$SCRIPT_DIR/VERSION" | tr -d '[:space:]')"
 

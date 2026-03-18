@@ -69,7 +69,7 @@ final class MenuBarController: NSObject {
     func updateIcon() {
         let color  = aggregateColor()
         let config = NSImage.SymbolConfiguration(paletteColors: [.white, color])
-        let image  = NSImage(systemSymbolName: "bolt.circle.fill", accessibilityDescription: "osx-utils-automation")?
+        let image  = NSImage(systemSymbolName: "bolt.circle.fill", accessibilityDescription: "latch")?
             .withSymbolConfiguration(config)
         image?.isTemplate = false
         statusItem.button?.image = image
@@ -115,7 +115,7 @@ extension MenuBarController: NSMenuDelegate {
             menu.addItem(.separator())
         }
 
-        let aboutItem = ClosureMenuItem(title: "About osx-utils-automation") { [weak self] in
+        let aboutItem = ClosureMenuItem(title: "About latch") { [weak self] in
             self?.aboutWindowController.showWindow()
         }
         menu.addItem(aboutItem)
@@ -129,7 +129,7 @@ extension MenuBarController: NSMenuDelegate {
                 case .upToDate:
                     let alert = NSAlert()
                     alert.messageText     = "You're up to date"
-                    alert.informativeText = "osx-utils-automation is already running the latest version."
+                    alert.informativeText = "latch is already running the latest version."
                     alert.alertStyle      = .informational
                     alert.addButton(withTitle: "OK")
                     NSApp.activate(ignoringOtherApps: true)
