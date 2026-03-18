@@ -13,10 +13,14 @@ enum LaunchAtLogin {
 
     static func setEnabled(_ enabled: Bool) {
         let uid = String(getuid())
+        let status: Int32
         if enabled {
-            launchctl("bootstrap", "gui/\(uid)", plistPath)
+            status = launchctl("bootstrap", "gui/\(uid)", plistPath)
         } else {
-            launchctl("bootout", "gui/\(uid)/\(label)")
+            status = launchctl("bootout", "gui/\(uid)/\(label)")
+        }
+        if status != 0 {
+            log("LaunchAtLogin: launchctl \(enabled ? "bootstrap" : "bootout") exited \(status)")
         }
     }
 

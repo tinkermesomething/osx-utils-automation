@@ -154,12 +154,8 @@ final class KeyboardSwitcher: NSObject, Automation {
         let cfg = config.keyboardSwitcher
         if cfg.enabled && !isEnabled { start(); return }
         if !cfg.enabled && isEnabled { stop();  return }
-        // Restart if BT or activeDetection changed — IOHIDManager needs to re-open
-        // with updated filtering. Simplest correct approach: full restart.
-        if isEnabled {
-            stop()
-            start()
-        }
+        // includeBluetooth and activeDetection are read live in isTrackedExternalKeyboard()
+        // and inputReceived() respectively — no IOHIDManager restart needed for config changes.
     }
 
     // MARK: - Device callbacks

@@ -179,10 +179,16 @@ final class UpdateWindowController: NSWindowController {
                 let dest = FileManager.default.temporaryDirectory
                     .appendingPathComponent("latch-\(self.releaseInfo.version).pkg")
                 try? FileManager.default.removeItem(at: dest)
-                try? FileManager.default.moveItem(at: tmpURL, to: dest)
+                var pkgToOpen = tmpURL
+                do {
+                    try FileManager.default.moveItem(at: tmpURL, to: dest)
+                    pkgToOpen = dest
+                } catch {
+                    log("UpdateChecker: move to stable path failed (\(error.localizedDescription)) — using temp URL")
+                }
 
                 // Hand off to macOS installer — user sees the standard install flow
-                NSWorkspace.shared.open(dest)
+                NSWorkspace.shared.open(pkgToOpen)
                 self.window?.close()
             }
         }.resume()

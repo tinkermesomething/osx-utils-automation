@@ -32,7 +32,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             updateWindowController:   updateWindowController,
             updateChecker:            updateChecker
         )
-        menuBarController.start()
 
         // Wire "Check for Updates" button in Settings > General
         settingsWindowController.onCheckForUpdates = { [weak self] in
