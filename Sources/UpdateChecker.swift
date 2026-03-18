@@ -6,6 +6,7 @@ struct ReleaseInfo {
     let version:      String   // e.g. "1.1.0"
     let releaseNotes: String
     let htmlURL:      URL
+    let pkgURL:       URL?     // direct download URL for the installer .pkg, nil if not in release assets
 }
 
 enum UpdateResult {
@@ -87,8 +88,16 @@ final class UpdateChecker {
             let remote = tagName.hasPrefix("v") ? String(tagName.dropFirst()) : tagName
             let notes  = json["body"] as? String ?? ""
 
+            // Find the installer .pkg asset (exclude the uninstaller)
+            let assets = json["assets"] as? [[String: Any]] ?? []
+            let pkgAsset = assets.first {
+                let name = $0["name"] as? String ?? ""
+                return name.hasSuffix(".pkg") && !name.contains("uninstaller")
+            }
+            let pkgURL = (pkgAsset?["browser_download_url"] as? String).flatMap { URL(string: $0) }
+
             if self.isNewer(remote, than: self.currentVersion) {
-                let info = ReleaseInfo(version: remote, releaseNotes: notes, htmlURL: htmlURL)
+                let info = ReleaseInfo(version: remote, releaseNotes: notes, htmlURL: htmlURL, pkgURL: pkgURL)
                 DispatchQueue.main.async { completion(.available(info)) }
             } else {
                 DispatchQueue.main.async { completion(.upToDate) }
